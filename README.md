@@ -134,5 +134,6 @@ On success, the server returns JSON which is shown in the form result box.
 
 ## License
 
-MIT (see `LICENSE`).
+MIT ([LICENSE](./LICENSE)).
+
 
