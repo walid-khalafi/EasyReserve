@@ -1,0 +1,192 @@
+<div style="max-width: 600px; margin: 0 auto; padding: 20px; direction: rtl; font-family: IRANSans, sans-serif;"><!-- بخش معرفی -->
+<div style="text-align: center; margin-bottom: 25px;"><img style="max-width: 180px; display: block; margin: 0 auto 15px auto;" src="/uploads/19/2023/May/03/Meeting.png" alt="ملاقات مردمی" />
+<p style="font-size: 16px; color: #333; line-height: 1.8;">زمان <strong>ملاقات عمومی</strong> با مدیرعامل شرکت شهرک&zwnj;های صنعتی خوزستان روزهای <strong>دوشنبه</strong> هر هفته می&zwnj;باشد.</p>
+<p style="font-size: 15px; color: #555;">جهت هماهنگی بیشتر با شماره زیر تماس حاصل فرمایید:</p>
+<h3 style="margin-top: 10px; color: #1e88e5; font-size: 22px;"><strong>06134455065</strong></h3>
+</div>
+<!-- استایل فرم -->
+<style>
+        .hint {
+            font-size: 12px;
+            color: #78909c;
+            margin-top: -10px;
+            margin-bottom: 12px;
+        }
+
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            background: #f1f3f4;
+            box-shadow: inset 2px 2px 5px #c9d0d6, inset -2px -2px 5px #ffffff;
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus, .form-textarea:focus {
+            background: #ffffff;
+            box-shadow: 0 0 8px rgba(66,165,245,0.4);
+            outline: none;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 90px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #42a5f5, #1e88e5);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s ease;
+            box-shadow: 0 5px 15px rgba(30,136,229,0.3);
+        }
+
+        .submit-btn:hover {
+            background: linear-gradient(135deg, #1e88e5, #1565c0);
+        }
+
+        .date-box {
+            background:#f1f3f4;
+            padding:12px;
+            border-radius:10px;
+            margin-bottom:20px;
+            font-size: 15px;
+        }
+
+        #resultBox {
+            display:none;
+            margin-top:20px;
+            padding:15px;
+            border-radius:10px;
+            background:#f1f3f4;
+            text-align:center;
+            font-size:15px;
+        }
+    </style>
+<!-- فرم -->
+<div class="container">
+<h2 style="text-align: center; margin-bottom: 25px;">فرم ثبت&zwnj;نام بازدید مردمی</h2>
+<form id="visitForm">
+<div class="date-box"><strong>تاریخ بازدید:</strong> <span id="shamsiDate" style="color: #1e88e5; font-weight: bold;"></span></div>
+<input id="visit_day" name="visit_day" type="hidden" /> <label>نام و نام خانوادگی</label> <input class="form-input" name="full_name" required="" type="text" placeholder="مثلاً: ولید خلفی" />
+<div class="hint">برای ثبت نوبت، نام کامل خود را وارد کنید.</div>
+<label>کد ملی</label> <input class="form-input" name="national_id" required="" type="text" placeholder="مثلاً: 1234567890" />
+<div class="hint">کد ملی برای جلوگیری از ثبت نوبت تکراری استفاده می&zwnj;شود.</div>
+<label>شماره تماس</label> <input class="form-input" name="phone" required="" type="text" placeholder="مثلاً: 09121234567" />
+<div class="hint">برای اطلاع&zwnj;رسانی در صورت تغییر زمان یا ظرفیت.</div>
+<label>موضوع مراجعه</label> <textarea class="form-textarea" name="subject" required="" placeholder="به&zwnj;طور خلاصه موضوع درخواست خود را توضیح دهید..."></textarea>
+<div class="hint">این توضیح به مدیر دفتر کمک می&zwnj;کند درخواست شما را بهتر بررسی کند.</div>
+<button class="submit-btn" type="submit">ثبت نوبت</button></form>
+<div id="resultBox">&nbsp;</div>
+<div class="footer">سامانه نوبت&zwnj;دهی بازدید مردمی</div>
+</div>
+</div>
+<!-- اسکریپت تاریخ + اعتبارسنجی + AJAX -->
+<script>
+window.onload = function() {
+
+    /* تبدیل میلادی به شمسی */
+    function gregorian_to_jalali(gy, gm, gd){
+        var g_d_m=[0,31,59,90,120,151,181,212,243,273,304,334];
+        var gy2=(gm>2)?(gy+1):gy;
+        var days=355666+365*gy+parseInt((gy2+3)/4)-parseInt((gy2+99)/100)+parseInt((gy2+399)/400)+gd+g_d_m[gm-1];
+        var jy=-1595+33*parseInt(days/12053); days%=12053;
+        jy+=4*parseInt(days/1461); days%=1461;
+        if(days>365){jy+=parseInt((days-1)/365); days=(days-1)%365;}
+        var jm=(days<186)?1+parseInt(days/31):7+parseInt((days-186)/30);
+        var jd=1+((days<186)?(days%31):((days-186)%30));
+        return [jy, jm, jd];
+    }
+
+    /* پیدا کردن دوشنبه بعدی */
+    function getNextMonday() {
+        let today = new Date();
+        let day = today.getDay(); // Monday = 1
+        let diff = (1 - day + 7) % 7;
+        if (diff === 0) diff = 7;
+        today.setDate(today.getDate() + diff);
+        return today;
+    }
+
+    /* اعتبارسنجی کد ملی */
+    function validateNationalCode(code) {
+        if (!/^\d{10}$/.test(code)) return false;
+        let check = parseInt(code[9]);
+        let sum = 0;
+        for (let i = 0; i < 9; i++) {
+            sum += parseInt(code[i]) * (10 - i);
+        }
+        let remainder = sum % 11;
+        return (remainder < 2 && check === remainder) || (remainder >= 2 && check === (11 - remainder));
+    }
+
+    /* اعتبارسنجی شماره موبایل */
+    function validateMobile(phone) {
+        return /^09\d{9}$/.test(phone);
+    }
+
+    /* محاسبه تاریخ */
+    let nextMonday = getNextMonday();
+    let gy = nextMonday.getFullYear();
+    let gm = nextMonday.getMonth() + 1;
+    let gd = nextMonday.getDate();
+
+    let j = gregorian_to_jalali(gy, gm, gd);
+    let shamsi = j[0] + "/" + j[1].toString().padStart(2,'0') + "/" + j[2].toString().padStart(2,'0');
+
+    document.getElementById("shamsiDate").innerText = "دوشنبه " + shamsi;
+    document.getElementById("visit_day").value = nextMonday.toISOString().split("T")[0];
+
+    /* ارسال AJAX */
+    document.getElementById("visitForm").addEventListener("submit", function(e){
+        e.preventDefault();
+
+        let full_name   = document.querySelector("input[name='full_name']").value.trim();
+        let national_id = document.querySelector("input[name='national_id']").value.trim();
+        let phone       = document.querySelector("input[name='phone']").value.trim();
+        let subject     = document.querySelector("textarea[name='subject']").value.trim();
+
+        let box = document.getElementById("resultBox");
+
+        /* اعتبارسنجی کد ملی */
+        if (!validateNationalCode(national_id)) {
+            box.innerHTML = "<p style='color:red;'>کد ملی وارد شده معتبر نیست.</p>";
+            box.style.display = "block";
+            return;
+        }
+
+        /* اعتبارسنجی شماره موبایل */
+        if (!validateMobile(phone)) {
+            box.innerHTML = "<p style='color:red;'>شماره موبایل باید با 09 شروع شده و 11 رقم باشد.</p>";
+            box.style.display = "block";
+            return;
+        }
+
+        /* ارسال به سرور */
+        let formData = new FormData(this);
+
+        fetch("http://nobat.khiec.ir/reserve.php", {
+            method: "POST",
+            body: formData
+        })
+        .then(res => res.text())
+        .then(data => {
+            box.innerHTML = data;
+            box.style.display = "block";
+        })
+        .catch(err => {
+            box.innerHTML = "<p style='color:red;'>خطا در ارتباط با سرور</p>";
+            box.style.display = "block";
+        });
+    });
+};
+</script>
